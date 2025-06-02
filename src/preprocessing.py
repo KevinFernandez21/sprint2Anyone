@@ -54,7 +54,40 @@ def preprocess_data(
     #     working_train_df DataFrame to fit the OrdinalEncoder and
     #     OneHotEncoder classes, then use the fitted models to transform all the
     #     datasets.
+    cat_cols = working_train_df.select_dtypes(include=["object"]).columns.tolist()
+    binary_cols = [ col for col in cat_cols if working_train_df[col].nunique() == 2 ]
+    multi_cols = [ col for col in cat_cols if working_train_df[col].nunique() > 2 ]
 
+    ordinal_encoder = OrdinalEncoder()
+    onehot_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    
+    ordinal_encoder.fit(working_train_df[binary_cols])
+    onehot_encoder.fit(working_train_df[multi_cols])
+
+    def encode_dfs(dfs):
+        encode_dfs = []
+        for df in dfs:
+            df_binary = pd.DataFrame(
+                ordinal_encoder.transform(df[binary_cols]),
+                columns=binary_cols,
+                index=df.index
+            )
+            onehot_arr = onehot_encoder.transform(df[multi_cols])
+            onehot_cols = onehot_encoder.get_feature_names_out(multi_cols)
+            df_onehot = pd.DataFrame(
+                onehot_arr,
+                columns=onehot_cols,
+                index=df.index
+            )
+            df_numeric = df.drop(columns=binary_cols + multi_cols)
+
+            df_encoded = pd.concat([df_numeric, df_binary, df_onehot], axis=1)
+            encode_dfs.append(df_encoded)
+        return encode_dfs
+    
+    working_train_df, working_val_df, working_test_df = encode_dfs(
+        [working_train_df, working_val_df, working_test_df]
+    )
 
     # 3. TODO Impute values for all columns with missing data or, just all the columns.
     # Use median as imputing value. Please use sklearn.impute.SimpleImputer().
@@ -65,6 +98,23 @@ def preprocess_data(
     #     working_train_df DataFrame to fit the SimpleImputer and then use the fitted
     #     model to transform all the datasets.
 
+    imputer = SimpleImputer(strategy='median')
+    imputer.fit(working_train_df)
+    working_train_df = pd.DataFrame(
+        imputer.transform(working_train_df),
+        columns=working_train_df.columns,
+        index=working_train_df.index
+    )
+    working_val_df = pd.DataFrame(
+        imputer.transform(working_val_df),
+        columns=working_val_df.columns,
+        index=working_val_df.index
+    )
+    working_test_df = pd.DataFrame(
+        imputer.transform(working_test_df),
+        columns=working_test_df.columns,
+        index=working_test_df.index
+    )
 
     # 4. TODO Feature scaling with Min-Max scaler. Apply this to all the columns.
     # Please use sklearn.preprocessing.MinMaxScaler().
@@ -74,6 +124,27 @@ def preprocess_data(
     #   - In order to prevent overfitting and avoid Data Leakage you must use only
     #     working_train_df DataFrame to fit the MinMaxScaler and then use the fitted
     #     model to transform all the datasets.
+    scaler = MinMaxScaler()
+    scaler.fit(working_train_df)
 
+    working_train_df = pd.DataFrame(
+        scaler.transform(working_train_df),
+        columns=working_train_df.columns,
+        index=working_train_df.index
+    )
+    working_val_df = pd.DataFrame(
+        scaler.transform(working_val_df),
+        columns=working_val_df.columns,
+        index=working_val_df.index
+    )
+    working_test_df = pd.DataFrame(
+        scaler.transform(working_test_df),
+        columns=working_test_df.columns,
+        index=working_test_df.index
+    )
+    
+    working_train_df = working_train_df.to_numpy()
+    working_val_df = working_val_df.to_numpy()
+    working_test_df = working_test_df.to_numpy()
 
-    return None
+    return working_train_df,working_val_df,working_test_df

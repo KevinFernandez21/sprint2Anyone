@@ -71,9 +71,13 @@ def get_feature_target(
 
     # TODO
     # Assign to X_train all the columns from app_train except "TARGET"
+    X_train = app_train.drop(columns=["TARGET"])
     # Assign to y_train the "TARGET" column
+    y_train = app_train["TARGET"]
     # Assign to X_test all the columns from app_test except "TARGET"
+    X_test = app_test.drop(columns=["TARGET"])
     # Assign to y_test the "TARGET" column
+    y_test = app_test["TARGET"]
 
 
     return X_train, y_train, X_test, y_test
@@ -101,7 +105,7 @@ def get_train_val_sets(
         y_val : pd.Series
             Validation target
     """
-    X_train, X_val, y_train, y_val = None, None, None, None
+    #X_train, X_val, y_train, y_val = None, None, None, None
 
     # TODO
     # Use the `sklearn.model_selection.train_test_split` function with
@@ -111,6 +115,9 @@ def get_train_val_sets(
     # Assign a seed so we get reproducible output across multiple function
     # calls (see `random_state` parameter in `train_test_split`).
     # Shuffle the data (see `shuffle` parameter in `train_test_split`).
+    X_train,X_val,y_train,y_val = train_test_split(
+        X_train, y_train, test_size=0.2, random_state=42, shuffle=True
+    )
 
 
     return X_train, X_val, y_train, y_val
